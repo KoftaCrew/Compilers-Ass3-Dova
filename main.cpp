@@ -336,7 +336,7 @@ const char *ExprDataTypeStr[] =
 
 #define MAX_CHILDREN 3
 
-struct TreeNode {
+struct  TreeNode {
     TreeNode *child[MAX_CHILDREN];
     TreeNode *sibling; // used for sibling statements only
 
@@ -797,8 +797,25 @@ struct SymbolTable {
     }
 };
 
+void Analyze(TreeNode *node, SymbolTable *st) {
+    if (node->node_kind == ID_NODE) {
+        st->Insert(node->id, node->line_num);
+    } else {
+        int i;
+        for (i = 0; i < MAX_CHILDREN; i++) if (node->child[i]) Analyze(node->child[i], st);
+        if (node->sibling) Analyze(node->sibling, st);
+    }
+}
+
+
 int main(){
     CompilerInfo* compilerInfo = new CompilerInfo("input.txt", "output.txt", "debug.txt");
     TreeNode *parseTree = Parse(compilerInfo);
-    PrintTree(parseTree);
+//    PrintTree(parseTree);
+
+    SymbolTable st;
+    Analyze(parseTree, &st);
+//    st.Print();
+
+
 }
