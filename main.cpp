@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 
 using namespace std;
 
@@ -806,16 +807,100 @@ void Analyze(TreeNode *node, SymbolTable *st) {
         if (node->sibling) Analyze(node->sibling, st);
     }
 }
+int intSimulator(TreeNode *node,SymbolTable &st, int* vars){
+    //num,id,oper
+
+    //num
+    if(node->node_kind==NUM_NODE) return node->num;
+    //id
+    else if(node->node_kind==ID_NODE){
+        VariableInfo *temp = st.Find(node->id);
+        if(temp== nullptr)return 0;
+        return vars[temp->memloc];
+    }
+    //oper
+    else if(node->node_kind==OPER_NODE){
+        //opers: +,-,*,/,^
+        int left = intSimulator(node->child[0],st,vars);
+        int right = intSimulator(node->child[1],st,vars);
+        if(node->oper==PLUS)return left+right;
+        else if(node->oper==MINUS)return left-right;
+        else if(node->oper==TIMES)return left*right;
+        else if(node->oper==DIVIDE)return left/right;
+        else if(node->oper==POWER)return pow(left,right);
+    }
+    return 0;
+}
+
+bool boolSimulator(TreeNode *node,SymbolTable &st, int* vars){
+    //lessthan, equal
+    if(node->oper == LESS_THAN){
+        return intSimulator(node->child[0],st,vars) < intSimulator(node->child[1],st,vars);
+    }
+    else if(node->oper == EQUAL){
+        return intSimulator(node->child[0],st,vars) == intSimulator(node->child[1],st,vars);
+    }
+    else{
+        printf("Error: boolSimulator-Unknown operator\n");
+        throw -1;
+    }
+
+}
 
 
+void Simulator(TreeNode *node, SymbolTable st, int *vars) //startnode, table, memory array
+{
+    if(node== nullptr) return;
+    //if, repeat, assignment, read, write
+
+    //if
+    if(node->node_kind==IF_NODE){
+        if(boolSimulator(node->child[0],st,vars)){
+            Simulator(node->child[1],st,vars);
+        }
+        else{
+            Simulator(node->child[2],st,vars);
+        }
+    }
+    //repeat
+    else if(node->node_kind==REPEAT_NODE){
+        while(true){
+            Simulator(node->child[0],st,vars);
+            if(boolSimulator(node->child[1],st,vars)) break;
+        }
+    }
+    //assignment
+    else if(node->node_kind==ASSIGN_NODE){
+        VariableInfo *temp = st.Find(node->id);
+        if(temp == nullptr) return;
+        vars[temp->memloc]=intSimulator(node->child[0],st,vars);
+    }
+    //read
+    else if(node->node_kind==READ_NODE){
+        VariableInfo *temp = st.Find(node->id);
+        if(temp == nullptr) return;
+        printf("Enter %s:",node->id);
+        scanf("%d",&vars[temp->memloc]);
+    }
+    //write
+    else if(node->node_kind==WRITE_NODE){
+        printf("val: %d",intSimulator(node->child[0],st,vars));
+    }
+
+    Simulator(node->sibling,st,vars);
+}
 int main(){
     CompilerInfo* compilerInfo = new CompilerInfo("input.txt", "output.txt", "debug.txt");
+
     TreeNode *parseTree = Parse(compilerInfo);
 //    PrintTree(parseTree);
 
     SymbolTable st;
     Analyze(parseTree, &st);
 //    st.Print();
+    int* memoryVars = new int[st.num_vars];
+    memset(memoryVars, 0, sizeof(int) * st.num_vars);
+    Simulator(parseTree, st, memoryVars);
 
-
+    return 1;
 }
