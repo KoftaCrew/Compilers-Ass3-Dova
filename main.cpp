@@ -892,15 +892,20 @@ void Simulator(TreeNode *node, SymbolTable st, int *vars) //startnode, table, me
 int main(){
     CompilerInfo* compilerInfo = new CompilerInfo("input.txt", "output.txt", "debug.txt");
 
+    printf("======Parser======\n");
     TreeNode *parseTree = Parse(compilerInfo);
-//    PrintTree(parseTree);
+    PrintTree(parseTree);
 
+    printf("======Analyzer======\n");
     SymbolTable st;
     Analyze(parseTree, &st);
-//    st.Print();
+    st.Print();
+
+    printf("======Simulator======\n");
     int* memoryVars = new int[st.num_vars];
     memset(memoryVars, 0, sizeof(int) * st.num_vars);
+
     Simulator(parseTree, st, memoryVars);
 
-    return 1;
+    return 0;
 }
